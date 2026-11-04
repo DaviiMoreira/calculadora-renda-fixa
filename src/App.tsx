@@ -36,76 +36,78 @@ export default function App() {
 
   const campoTaxa = (rotulo: string, chave: keyof Taxas) => (
     <label>
-      {rotulo}
+      <span>{rotulo}</span>
       <input type="number" step="0.01" value={taxas[chave]}
         onChange={(e) => setTaxas({ ...taxas, [chave]: Number(e.target.value) })} />
     </label>
   );
 
-  const melhor = calculo.resultados[0];
+  const resultados = calculo.resultados;
+  const melhor = resultados[0];
+  const maiorGanho = Math.max(...resultados.map((r) => r.rendimentoLiquido), 1);
 
   return (
     <main>
       <header>
-        <h1>Calculadora de Renda Fixa</h1>
-        <p className="sub">Compare CDB, LCI/LCA, Tesouro Selic e poupança com as taxas oficiais do Banco Central.</p>
+        <span className="rotulo">Renda fixa · taxas do Banco Central</span>
+        <h1>Onde seu dinheiro<br />rende mais</h1>
+        <p className="sub">Compare CDB, LCI/LCA, Tesouro Selic e poupança já descontando imposto, custos e inflação.</p>
       </header>
 
-      <section className="card">
-        <h2>Seu investimento</h2>
+      <section className="bloco">
+        <span className="rotulo">Seu investimento</span>
         <div className="grid">
-          <label>Valor (R$)<input type="number" min="1" value={valor} onChange={(e) => setValor(Number(e.target.value))} /></label>
-          <label>Prazo (dias)<input type="number" min="30" value={dias} onChange={(e) => setDias(Number(e.target.value))} /></label>
-          <label>CDB (% do CDI)<input type="number" value={cdb} onChange={(e) => setCdb(Number(e.target.value))} /></label>
-          <label>LCI/LCA (% do CDI)<input type="number" value={lci} onChange={(e) => setLci(Number(e.target.value))} /></label>
+          <label><span>Valor (R$)</span><input type="number" min="1" value={valor} onChange={(e) => setValor(Number(e.target.value))} /></label>
+          <label><span>Prazo (dias)</span><input type="number" min="30" value={dias} onChange={(e) => setDias(Number(e.target.value))} /></label>
+          <label><span>CDB (% do CDI)</span><input type="number" value={cdb} onChange={(e) => setCdb(Number(e.target.value))} /></label>
+          <label><span>LCI/LCA (% do CDI)</span><input type="number" value={lci} onChange={(e) => setLci(Number(e.target.value))} /></label>
         </div>
       </section>
 
-      <section className="card">
-        <h2>Taxas</h2>
+      <section className="bloco">
+        <span className="rotulo">Taxas de referência</span>
         <p className={`status ${status}`}>
-          {status === "carregando" && "Buscando taxas no Banco Central..."}
-          {status === "ok" && `Taxas oficiais do Banco Central, atualizadas em ${dataRef}. Você pode editar para simular.`}
-          {status === "manual" && "Não foi possível consultar o Banco Central agora. Usando valores de referência editáveis."}
+          {status === "carregando" && "Buscando no Banco Central"}
+          {status === "ok" && `Oficiais, atualizadas em ${dataRef}. Edite para simular.`}
+          {status === "manual" && "Banco Central indisponível. Valores de referência editáveis."}
         </p>
-        <div className="grid three">
+        <div className="grid">
           {campoTaxa("Selic (% a.a.)", "selic")}
           {campoTaxa("CDI (% a.a.)", "cdi")}
           {campoTaxa("IPCA 12 meses (%)", "ipca")}
         </div>
       </section>
 
-      {calculo.erro ? (
-        <p className="erro">{calculo.erro}</p>
-      ) : (
-        <section className="card">
-          <h2>Resultado</h2>
-          {melhor && (
-            <p className="destaque">
-              Melhor opção: <strong>{melhor.nome}</strong>, com {brl.format(melhor.rendimentoLiquido)} de rendimento líquido.
-            </p>
-          )}
-          <div className="tabela">
-            <table>
-              <thead>
-                <tr><th>Investimento</th><th>Bruto</th><th>IR</th><th>Custos</th><th>Líquido</th><th>Ganho real</th></tr>
-              </thead>
-              <tbody>
-                {calculo.resultados.map((r) => (
-                  <tr key={r.nome}>
-                    <td><strong>{r.nome}</strong><small>{r.observacao}</small></td>
-                    <td>{brl.format(r.bruto)}</td>
-                    <td>{brl.format(r.imposto)}</td>
-                    <td>{brl.format(r.custos)}</td>
-                    <td><strong>{brl.format(r.liquido)}</strong></td>
-                    <td className={r.rentabilidadeRealPct >= 0 ? "pos" : "neg"}>{pct(r.rentabilidadeRealPct)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
+      <section className="bloco">
+        {calculo.erro ? (
+          <p className="erro">{calculo.erro}</p>
+        ) : (
+          <>
+            {melhor && (
+              <div className="veredito">
+                <span className="rotulo">Melhor opção</span>
+                <div className="numero">{brl.format(melhor.rendimentoLiquido)}</div>
+                <p>de rendimento líquido com <strong>{melhor.nome}</strong> em {dias} dias.</p>
+              </div>
+            )}
+            <span className="rotulo">Comparativo</span>
+            <div className="linhas">
+              {resultados.map((r, i) => (
+                <div className={`linha${i === 0 ? " primeira" : ""}`} key={r.nome}>
+                  <span className="nome">{r.nome}</span>
+                  <span className="liquido">{brl.format(r.liquido)}</span>
+                  <span className="obs">{r.observacao}</span>
+                  <span className="detalhe">
+                    IR {brl.format(r.imposto)}{r.custos > 0 && ` · custos ${brl.format(r.custos)}`} ·{" "}
+                    <span className={r.rentabilidadeRealPct >= 0 ? "pos" : "neg"}>real {pct(r.rentabilidadeRealPct)}</span>
+                  </span>
+                  <div className="barra"><i style={{ width: `${Math.max(0, (r.rendimentoLiquido / maiorGanho) * 100)}%` }} /></div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </section>
 
       <footer>
         Estimativa em dias corridos, sem IOF (prazo mínimo de 30 dias) e sem TR na poupança. Não é recomendação de investimento.
